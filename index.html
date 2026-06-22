@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MINECRAFT CLICKER — PRO EDITION</title>
+<style>
+  /* ============================================================
+     MINECRAFT PIXEL LAYOUT & AUDIO-VISUAL THEME
+  ============================================================ */
+  :root {
+    --bg-panel:      rgba(22, 16, 10, 0.75);
+    --bg-card:       #4a3b2c;
+    --bg-card-hover: #5c4a37;
+    --border-pixel:  #2e2216;
+    --text-green:    #55ff55;
+    --text-yellow:   #ffff55;
+    --text-aqua:     #55ffff;
+    --font-pixel:    'Courier New', Courier, monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    background: #5c97fe;
+    /* Minecraft Landscape Background */
+    background-image: linear-gradient(to bottom, rgba(92,151,254,0.3) 0%, rgba(74,114,39,0.5) 100%), 
+                      url('https://images.unsplash.com/photo-1607988795691-3d0147b43231?q=80&w=1200&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center;
+    color: #ffffff;
+    font-family: var(--font-pixel);
+    font-weight: bold;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+    text-shadow: 2px 2px 0px #000;
+  }
+
+  #app {
+    display: grid;
+    grid-template-columns: 1fr 340px; /* Left side is very huge, right side is small */
+    grid-template-rows: 60px 1fr;
+    height: 100vh;
+  }
+
+  /* TOP HEADER BAR */
+  #topbar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    background: rgba(16, 12, 8, 0.95);
+    border-bottom: 4px solid #000;
+    z-index: 10;
+  }
+  .logo { font-size: 20px; color: var(--text-yellow); letter-spacing: 1px; }
+  .stage-badge { margin-left: 25px; padding: 4px 14px; background: #222; border: 3px solid #55ff55; color: var(--text-green); font-size: 13px; }
+  .spacer { flex: 1; }
+  .crystals-display { display: flex; align-items: center; gap: 8px; color: var(--text-aqua); font-size: 14px; }
+
+  /* LEFT PANEL — GIANT CLICKER AREAL */
+  #left-panel {
+    background: var(--bg-panel);
+    border-right: 4px solid #000;
+    backdrop-filter: blur(4px);
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 5;
+  }
+
+/* Rasmning o'zini qidiruv tizimidan yashiramiz */
+  #main-block-img {
+    width: 220px;
+    height: 220px;
+    image-rendering: pixelated;
+    pointer-events: none; /* Google Lens va qidiruvni bloklaydi */
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  /* Effektlarni uning div konteyneriga o'tkazamiz */
+  #block-container {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer; /* Sichqoncha borganda bosiladigan qilish */
+    transition: transform 0.05s ease;
+  }
+  #block-container:hover { transform: scale(1.05); }
+  #block-container:active { transform: scale(0.92) translateY(5px); }
+
+  #core-label { font-size: 14px; color: var(--text-yellow); margin-top: 15px; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* Middle Live Counter Grid */
+  .live-stats {
+    width: 80%;
+    max-width: 600px;
+    background: rgba(0,0,0,0.65);
+    border: 4px solid #000;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 15px 0;
+  }
+  .stat-row { display: flex; justify-content: space-between; align-items: center; }
+  .stat-lbl { font-size: 13px; color: #bbb; text-transform: uppercase; }
+  .stat-val { font-size: 18px; color: #fff; }
+  .stat-val.main { color: var(--text-green); font-size: 26px; }
+
+  /* Bottom Permanent Logs */
+  .bottom-logs {
+    width: 80%;
+    max-width: 600px;
+    border-top: 4px solid #000;
+    padding-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 12px;
+    color: #bbb;
+  }
+
+  /* Stage progress bar */
+  #stage-bar-wrap { width: 100%; display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+  #stage-bar-bg { height: 14px; background: #111; border: 3px solid #555; overflow: hidden; }
+  #stage-bar-fill { height: 100%; background: #55ff55; width: 0%; }
+
+  /* Floating Floating text particle */
+  .float-particle {
+    position: absolute; font-family: var(--font-pixel); font-weight: bold; font-size: 26px;
+    text-shadow: 2px 2px 0px #000; pointer-events: none; z-index: 100;
+    animation: floatUp 0.7s linear forwards;
+  }
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1.3); }
+    100% { opacity: 0; transform: translateY(-90px) scale(0.8); }
+  }
+
+  /* RIGHT PANEL — SMALLER STORE CARD MATRIX */
+  #right-panel {
+    background: rgba(28, 20, 14, 0.95);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-left: 4px solid #000;
+  }
+  #shop-tabs { display: flex; background: #110d08; border-bottom: 4px solid #000; }
+  .tab-btn {
+    flex: 1; padding: 12px 5px; background: none; border: none; color: #888;
+    font-size: 11px; font-weight: bold; font-family: var(--font-pixel); cursor: pointer;
+    text-shadow: 1px 1px 0px #000;
+  }
+  .tab-btn.active { color: #fff; background: var(--bg-card); border-bottom: 4px solid var(--text-green); }
+
+  .tab-content { display: none; flex: 1; overflow-y: auto; padding: 12px; flex-direction: column; gap: 8px; }
+  .tab-content.active { display: flex; }
+
+  /* Cards Spec */
+  .shop-card {
+    background: var(--bg-card); border: 3px solid var(--border-pixel); padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 3px; position: relative; cursor: pointer;
+  }
+  .shop-card:hover:not(.locked-card) { background: var(--bg-card-hover); border-color: var(--text-yellow); }
+  .shop-card.cant-afford { opacity: 0.6; cursor: not-allowed; }
+  .shop-card.purchased { border-color: var(--text-green); background: rgba(85,255,85,0.1); cursor: default; }
+  
+  /* Locked Items Style */
+  .shop-card.locked-card {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: #1a1510;
+    border-color: #2a2015;
+  }
+  .lock-badge {
+    position: absolute; right: 10px; top: 10px; background: #aa0000; color: #fff;
+    font-size: 9px; padding: 1px 5px; border-radius: 2px;
+  }
+
+  .card-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-yellow); }
+  .card-count { color: var(--text-aqua); background: rgba(0,0,0,0.5); padding: 1px 6px; font-size: 11px; }
+  .card-desc { font-size: 11px; color: #ccc; }
+  .card-footer { display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-top: 2px; }
+  .card-cost { color: #ffaa00; }
+
+  #toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: #000; border: 4px solid var(--text-green); color: #fff; padding: 12px 24px;
+    font-family: var(--font-pixel); font-size: 13px; box-shadow: 0 5px 0px rgba(0,0,0,1); transition: 0.25s ease; opacity: 0; z-index: 1000;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header id="topbar">
+    <span class="logo">⛏️ MINECRAFT CLICKER</span>
+    <span class="stage-badge" id="stage-name">STAGE 1: DIRT</span>
+    <span class="spacer"></span>
+    <div class="crystals-display">
+      <span>💎 Crystals:</span> <span id="crystal-count">0</span>
+      <span style="color:var(--text-green); font-size:11px">(+<span id="crystal-bonus">0</span>% Boost)</span>
+    </div>
+  </header>
+
+  <aside id="left-panel">
+    <div id="block-container">
+      <img id="main-block-img" src="" alt="Minecraft Block">
+      <div id="core-label">Click Block to Mine!</div>
+    </div>
+
+    <div class="live-stats">
+      <div class="stat-row">
+        <span class="stat-lbl">Blocks Held</span>
+        <span class="stat-val main" id="energy-display">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-lbl">By Click</span>
+        <span class="stat-val" id="click-power-display" style="color:var(--text-yellow)">1</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-lbl">Per Second</span>
+        <span class="stat-val" id="eps-display" style="color:var(--text-aqua)">0</span>
+      </div>
+      
+      <div id="stage-bar-wrap">
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:#aaa;">
+          <span>Next Stage Progress</span>
+          <span id="bar-stage-pct">0%</span>
+        </div>
+        <div id="stage-bar-bg"><div id="stage-bar-fill"></div></div>
+      </div>
+    </div>
+
+    <div class="bottom-logs">
+      <div>• Total Earned: <span id="energy-total-display" style="color:#fff;">0</span></div>
+      <div>• Total Clicks: <span id="total-clicks-display" style="color:#fff;">0</span></div>
+      <div>• Session Time: <span id="session-time" style="color:#fff;">00:00:00</span></div>
+      <button onclick="resetGame()" style="margin-top:5px; padding:4px; background:#aa0000; border:2px solid #550000; color:#fff; font-size:11px; cursor:pointer; font-family:var(--font-pixel);">WIPE DATA SAVE</button>
+    </div>
+  </aside>
+
+  <aside id="right-panel">
+    <nav id="shop-tabs">
+      <button class="tab-btn active" onclick="switchTab('bots')">AUTO-BOTS (BPS)</button>
+      <button class="tab-btn" onclick="switchTab('upgrades')">TOOLS (CLICK)</button>
+      <button class="tab-btn" onclick="switchTab('prestige')">PRESTIGE</button>
+    </nav>
+    <div class="tab-content active" id="tab-bots"></div>
+    <div class="tab-content" id="tab-upgrades"></div>
+    <div class="tab-content" id="tab-prestige"></div>
+  </aside>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================================================================
+   10 STAGES SPECIFICATION WITH WORLD BLOCK ASSETS (PNG INTERNET)
+================================================================ */
+const STAGES = [
+  { id: 0, name: "DIRT", threshold: 0, next: 500, img: "dirt.png" },
+  { id: 1, name: "OAK WOOD", threshold: 500, next: 4000, img: "oak wood.webp" },
+  { id: 2, name: "COBBLESTONE", threshold: 4000, next: 25000, img: "cobblestone.png" },
+  { id: 3, name: "COAL ORE", threshold: 25000, next: 150000, img: "coal ore.png" },
+  { id: 4, name: "IRON ORE", threshold: 150000, next: 900000, img: "iron ore.png" },
+  { id: 5, name: "GOLD ORE", threshold: 900000, next: 6000000, img: "gold ore.png" },
+  { id: 6, name: "REDSTONE ORE", threshold: 6000000, next: 45000000, img: "redstone ore.png" },
+  { id: 7, name: "LAPIS ORE", threshold: 45000000, next: 350000000, img: "lapis ore.png" },
+  { id: 8, name: "DIAMOND ORE", threshold: 350000000, next: 3000000000, img: "diamond ore.png" },
+  { id: 9, name: "OBSIDIAN", threshold: 3000000000, next: Infinity, img: "obsidian.png" }
+];
+
+// 3 AUTO BOTS PER EACH STAGE
+const BOT_DEFS = [
+  // Stage 0
+  { id: "b0_1", name: "Wooden Shovel Bot", baseCost: 15, baseProd: 0.3, stage: 0, desc: "Digs loose dirt passively." },
+  { id: "b0_2", name: "Worm Colony Farm", baseCost: 90, baseProd: 1.5, stage: 0, desc: "Loosens up soil structure." },
+  { id: "b0_3", name: "Mud Shifter Rig", baseCost: 300, baseProd: 5, stage: 0, desc: "Scoops heavy wet clay fields." },
+  // Stage 1
+  { id: "b1_1", name: "Flint Tree Axe", baseCost: 500, baseProd: 12, stage: 1, desc: "Hacks wood logs steadily." },
+  { id: "b1_2", name: "Lumberjack Squad", baseCost: 1800, baseProd: 35, stage: 1, desc: "Saws tall forest trunks down." },
+  { id: "b1_3", name: "Steam Powered Sawmill", baseCost: 7500, baseProd: 95, stage: 1, desc: "Processes tree logs into items." },
+  // Stage 2
+  { id: "b2_1", name: "Stone Cracker", baseCost: 10000, baseProd: 180, stage: 2, desc: "Shatters hard cobblestones." },
+  { id: "b2_2", name: "Deep Stone Quarry", baseCost: 35000, baseProd: 550, stage: 2, desc: "Slices smooth stone out layers." },
+  { id: "b2_3", name: "Hydraulic Breaker", baseCost: 120000, baseProd: 1600, stage: 2, desc: "Pulverizes thick rock formations." },
+  // Stage 3
+  { id: "b3_1", name: "Soot Sweeper Bot", baseCost: 160000, baseProd: 3200, stage: 3, desc: "Gathers loose charcoal flakes." },
+  { id: "b3_2", name: "Pit Mine Pulley System", baseCost: 600000, baseProd: 9000, stage: 3, desc: "Hauls rich carbon nodes up fast." },
+  { id: "b3_3", name: "Steam Smelter Engine", baseCost: 2200000, baseProd: 28000, stage: 3, desc: "Burns black ore to run faster." },
+  // Stage 4
+  { id: "b4_1", name: "Magnetic Sifter Wheel", baseCost: 3000000, baseProd: 65000, stage: 4, desc: "Attracts raw iron shavings out." },
+  { id: "b4_2", name: "Heavy Forging Anvil", baseCost: 11000000, baseProd: 210000, stage: 4, desc: "Molds metallic ore units well." },
+  { id: "b4_3", name: "Iron Golem Crew", baseCost: 45000000, baseProd: 750000, stage: 4, desc: "Pounds raw mineral walls down." },
+  // Stage 5
+  { id: "b5_1", name: "Gold Panning Crane", baseCost: 60000000, baseProd: 1800000, stage: 5, desc: "Filters shiny river gold dust." },
+  { id: "b5_2", name: "Nugget Fuse Chamber", baseCost: 220000000, baseProd: 5800000, stage: 5, desc: "Combines golden nuggets securely." },
+  { id: "b5_3", name: "Midas Alchemic Core", baseCost: 900000000, baseProd: 18000000, stage: 5, desc: "Transmutes matter to shiny metal." },
+  // Stage 6
+  { id: "b6_1", name: "Redstone Wire Siphon", baseCost: 1200000000, baseProd: 50000000, stage: 6, desc: "Sucks logic electrical currents." },
+  { id: "b6_2", name: "Repeater Clock Array", baseCost: 4000000000, baseProd: 160000000, stage: 6, desc: "Triggers hyper active ticks." },
+  { id: "b6_3", name: "Comparator Grid", baseCost: 15000000000, baseProd: 550000000, stage: 6, desc: "Optimizes power extraction." },
+  // Stage 7
+  { id: "b7_1", name: "Azure Grinding Mill", baseCost: 20000000000, baseProd: 1500000000, stage: 7, desc: "Grinds celestial blue crystals." },
+  { id: "b7_2", name: "Enchanter Matrix", baseCost: 80000000000, baseProd: 5000000000, stage: 7, desc: "Infuses tools with magical efficiency." },
+  { id: "b7_3", name: "Lapis Lazuli Wormhole", baseCost: 300000000000, baseProd: 19000000000, stage: 7, desc: "Teleports premium gem segments." },
+  // Stage 8
+  { id: "b8_1", name: "Diamond Laser Blade", baseCost: 500000000000, baseProd: 55000000000, stage: 8, desc: "Cuts pure solid block nodes safely." },
+  { id: "b8_2", name: "TNT Geo Detonator", baseCost: 2000000000000, baseProd: 190000000000, stage: 8, desc: "Blasts matrix crystal crusts open." },
+  { id: "b8_3", name: "Sub-Zero Core Excavator", baseCost: 8000000000000, baseProd: 750000000000, stage: 8, desc: "Drills into deep gem biomes." },
+  // Stage 9
+  { id: "b9_1", name: "Magma Frost Condenser", baseCost: 15000000000000, baseProd: 2600000000000, stage: 9, desc: "Solidifies flowing lava pools instantly." },
+  { id: "b9_2", name: "Obsidian Sonic Cannon", baseCost: 65000000000000, baseProd: 11000000000000, stage: 9, desc: "Vibrates volcanic glass into dust particles." },
+  { id: "b9_3", name: "Wither Star Matrix Reactor", baseCost: 350000000000000, baseProd: 55000000000000, stage: 9, desc: "Infinite energy processing matrix." }
+];
+
+// 2 USER CLICK UPGRADES PER EACH STAGE
+const TOOL_DEFS = [
+  { id: "t0_1", name: "Flint Hand Trowel", val: 3, cost: 50, stage: 0 },
+  { id: "t0_2", name: "Reinforced Wood Shovel", val: 8, cost: 250, stage: 0 },
+  { id: "t1_1", name: "Stone-Edge Hatchet", val: 20, cost: 800, stage: 1 },
+  { id: "t1_2", name: "Sturdy Wooden Pickaxe", val: 55, cost: 3000, stage: 1 },
+  { id: "t2_1", name: "Polished Stone Pickaxe", val: 140, cost: 7000, stage: 2 },
+  { id: "t2_2", name: "Heavy Iron Sledge", val: 380, cost: 24000, stage: 2 },
+  { id: "t3_1", name: "Coal Spike Spear", val: 950, cost: 55000, stage: 3 },
+  { id: "t3_2", name: "Combustion Hand Drill", val: 2500, cost: 160000, stage: 3 },
+  { id: "t4_1", name: "Forged Iron Pickaxe", val: 6800, cost: 400000, stage: 4 },
+  { id: "t4_2", name: "Heavy Duty Steel Cleaver", val: 19000, cost: 1400000, stage: 4 },
+  { id: "t5_1", name: "Shining Golden Pickaxe", val: 52000, cost: 5000000, stage: 5 },
+  { id: "t5_2", name: "Gilded Obsidian Adze", val: 150000, cost: 18000000, stage: 5 },
+  { id: "t6_1", name: "Redstone Jackhammer", val: 450000, cost: 60000000, stage: 6 },
+  { id: "t6_2", name: "Frequency Plasma Carver", val: 1300000, cost: 220000000, stage: 6 },
+  { id: "t7_1", name: "Lapis Enchanted Pick", val: 3800000, cost: 650000000, stage: 7 },
+  { id: "t7_2", name: "Sorcerer Runic Staff", val: 11000000, cost: 2500000000, stage: 7 },
+  { id: "t8_1", name: "Flawless Diamond Pickaxe", val: 35000000, cost: 9500000000, stage: 8 },
+  { id: "t8_2", name: "Netherite Heavy Mallet", val: 120000000, cost: 42000000000, stage: 8 },
+  { id: "t9_1", name: "Obsidian Disintegrator", val: 480000000, cost: 180000000000, stage: 9 },
+  { id: "t9_2", name: "Creative Mode Wand", val: 2200000000, cost: 950000000000, stage: 9 }
+];
+
+/* ================================================================
+   MECHANICS LOGIC ENGINE
+================================================================ */
+let state = {
+  energy: 0,
+  totalEnergyEarned: 0,
+  totalClicks: 0,
+  stage: 0,
+  bots: {},
+  tools: [],
+  crystals: 0,
+  sessionStart: Date.now()
+};
+
+BOT_DEFS.forEach(b => state.bots[b.id] = 0);
+
+function fmt(n) {
+  if (n < 1000) return Math.floor(n).toLocaleString();
+  const suffixes = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp"];
+  const i = Math.floor(Math.log10(n) / 3);
+  if (i >= suffixes.length) return n.toExponential(2);
+  return (n / Math.pow(10, i * 3)).toFixed(2) + " " + suffixes[i];
+}
+
+function fmtTime(ms) {
+  const s = Math.floor(ms/1000);
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const sec = s%60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function botCost(bot, owned) { return Math.ceil(bot.baseCost * Math.pow(1.15, owned)); }
+function getGlobalMult() { return 1 + state.crystals * 0.15; }
+function getEPS() { return BOT_DEFS.reduce((sum, b) => sum + (state.bots[b.id] * b.baseProd), 0) * getGlobalMult(); }
+
+function getClickPower() {
+  let flat = 1;
+  TOOL_DEFS.forEach(t => { if (state.tools.includes(t.id)) flat += t.val; });
+  return flat * getGlobalMult();
+}
+
+function applyStageTheme(st) {
+  document.getElementById('main-block-img').src = st.img;
+  document.getElementById('stage-name').textContent = `STAGE ${st.id + 1}: ${st.name}`;
+  document.getElementById('core-label').textContent = `Mined Area: ${st.name} Node`;
+}
+
+function checkStageProgress() {
+  if (state.stage < STAGES.length - 1) {
+    let nextStage = STAGES[state.stage + 1];
+    if (state.totalEnergyEarned >= nextStage.threshold) {
+      state.stage = nextStage.id;
+      applyStageTheme(nextStage);
+      showToast(`🔓 Advanced Layer: ${nextStage.name}!`);
+      renderBots();
+      renderTools();
+    }
+  }
+
+  let cur = STAGES[state.stage];
+  let pct = 0;
+  if (state.stage === STAGES.length - 1) {
+    pct = 100;
+    document.getElementById('bar-stage-pct').textContent = "MAX";
+  } else {
+    let nextStage = STAGES[state.stage + 1];
+    pct = Math.min(100, Math.max(0, ((state.totalEnergyEarned - cur.threshold) / (nextStage.threshold - cur.threshold)) * 100));
+    document.getElementById('bar-stage-pct').textContent = pct.toFixed(1) + "%";
+  }
+  document.getElementById('stage-bar-fill').style.width = pct + "%";
+}
+
+// INTERACTIVE CLICK EVENT
+document.getElementById('block-container').addEventListener('click', function(e) {
+  let gain = getClickPower();
+  state.energy += gain;
+  state.totalEnergyEarned += gain;
+  state.totalClicks++;
+
+  let p = document.createElement('div');
+  p.className = 'float-particle';
+  p.textContent = '+' + fmt(gain);
+  p.style.left = e.clientX + 'px';
+  p.style.top = e.clientY + 'px';
+  p.style.color = "#55ff55";
+  document.body.appendChild(p);
+  p.addEventListener('animationend', () => p.remove());
+
+  updateUI();
+  checkStageProgress();
+});
+
+// PASSIVE EPS INTERVAL ENGINE (100ms)
+let lastTime = Date.now();
+setInterval(() => {
+  let now = Date.now();
+  let dt = (now - lastTime) / 1000;
+  lastTime = now;
+
+  let gain = getEPS() * dt;
+  state.energy += gain;
+  state.totalEnergyEarned += gain;
+
+  updateUI();
+  checkStageProgress();
+}, 100);
+
+// AUTO STORAGE SYNC
+setInterval(() => localStorage.setItem('mc_clicker_v5_pro', JSON.stringify(state)), 8000);
+
+function updateUI() {
+  document.getElementById('energy-display').textContent = fmt(state.energy);
+  document.getElementById('energy-total-display').textContent = fmt(state.totalEnergyEarned);
+  document.getElementById('eps-display').textContent = fmt(getEPS());
+  document.getElementById('click-power-display').textContent = fmt(getClickPower());
+  document.getElementById('total-clicks-display').textContent = state.totalClicks.toLocaleString();
+  document.getElementById('session-time').textContent = fmtTime(Date.now() - state.sessionStart);
+  document.getElementById('crystal-count').textContent = state.crystals;
+  document.getElementById('crystal-bonus').textContent = (state.crystals * 15).toFixed(0);
+
+  // Dynamic lock check for current and next stage item components
+  BOT_DEFS.forEach(b => {
+    let el = document.getElementById(`bot-card-${b.id}`);
+    if (el) {
+      if (b.stage > state.stage) {
+        el.classList.add('locked-card');
+      } else {
+        el.classList.remove('locked-card');
+        let cost = botCost(b, state.bots[b.id]);
+        el.classList.toggle('cant-afford', state.energy < cost);
+        let costLbl = document.getElementById(`bot-cost-${b.id}`);
+        if (costLbl) costLbl.textContent = "💵 " + fmt(cost);
+      }
+    }
+  });
+
+  TOOL_DEFS.forEach(t => {
+    let el = document.getElementById(`tool-card-${t.id}`);
+    if (el) {
+      if (t.stage > state.stage) {
+        el.classList.add('locked-card');
+      } else {
+        el.classList.remove('locked-card');
+        if (!state.tools.includes(t.id)) {
+          el.classList.toggle('cant-afford', state.energy < t.cost);
+        }
+      }
+    }
+  });
+}
+
+function renderBots() {
+  let container = document.getElementById('tab-bots');
+  container.innerHTML = '';
+  BOT_DEFS.forEach(b => {
+    // CRITICAL: Show current OR next stage items (Locked view)
+    if (b.stage > state.stage + 1) return;
+
+    let isLocked = b.stage === state.stage + 1;
+    let owned = state.bots[b.id];
+    let cost = botCost(b, owned);
+    let card = document.createElement('div');
+    card.className = "shop-card" + (isLocked ? " locked-card" : "");
+    card.id = `bot-card-${b.id}`;
+    card.innerHTML = `
+      ${isLocked ? '<span class="lock-badge">🔒 LOCKED (STG '+(b.stage+1)+')</span>' : ''}
+      <div class="card-header">
+        <span>${b.name}</span>
+        <span class="card-count" id="bot-count-${b.id}">${isLocked ? '?' : owned}</span>
+      </div>
+      <div class="card-desc">${b.desc}</div>
+      <div class="card-footer">
+        <span class="card-cost" id="bot-cost-${b.id}">💵 ${isLocked ? '???' : fmt(cost)}</span>
+        <span style="color:var(--text-aqua)">+${fmt(b.baseProd)}/s</span>
+      </div>`;
+    
+    if (!isLocked) {
+      card.addEventListener('click', () => {
+        let c = botCost(b, state.bots[b.id]);
+        if (state.energy < c) return;
+        state.energy -= c;
+        state.bots[b.id]++;
+        document.getElementById(`bot-count-${b.id}`).textContent = state.bots[b.id];
+        updateUI();
+      });
+    }
+    container.appendChild(card);
+  });
+}
+
+function renderTools() {
+  let container = document.getElementById('tab-upgrades');
+  container.innerHTML = '';
+  TOOL_DEFS.forEach(t => {
+    if (t.stage > state.stage + 1) return;
+
+    let isLocked = t.stage === state.stage + 1;
+    let purchased = state.tools.includes(t.id);
+    let card = document.createElement('div');
+    card.className = "shop-card" + (purchased ? " purchased" : "") + (isLocked ? " locked-card" : "");
+    card.id = `tool-card-${t.id}`;
+    card.innerHTML = `
+      ${isLocked ? '<span class="lock-badge">🔒 LOCKED (STG '+(t.stage+1)+')</span>' : ''}
+      <div class="card-header">
+        <span>${t.name}</span>
+        <span>${purchased ? '✓' : ''}</span>
+      </div>
+      <div class="card-desc">+${fmt(t.val)} force value per click.</div>
+      <div class="card-footer">
+        <span class="card-cost">${isLocked ? '???' : (purchased ? 'Active' : '💵 ' + fmt(t.cost))}</span>
+      </div>`;
+    
+    if (!purchased && !isLocked) {
+      card.addEventListener('click', () => {
+        if (state.energy < t.cost) return;
+        state.energy -= t.cost;
+        state.tools.push(t.id);
+        renderTools();
+        updateUI();
+        showToast(`⚒️ Pickaxe Gear Equiped: ${t.name}`);
+      });
+    }
+    container.appendChild(card);
+  });
+}
+
+function renderPrestige() {
+  let container = document.getElementById('tab-prestige');
+  let gain = Math.max(0, Math.floor(Math.sqrt(state.totalEnergyEarned / 1000000)));
+  container.innerHTML = `
+    <div style="background:rgba(0,0,0,0.5); border:3px solid var(--text-aqua); padding:16px; text-align:center;">
+      <h3 style="color:var(--text-aqua)">REBIRTH</h3>
+      <p style="font-size:11px; margin:8px 0; color:#eee;">Reset blocks layer progress for premium Crystals. Each crystal awards permanent +15% boost.</p>
+      <h2 style="color:var(--text-yellow); margin:12px 0;">+${gain} Crystals</h2>
+      <button onclick="triggerPrestige(${gain})" ${gain > 0 ? '' : 'disabled'} style="width:100%; padding:10px; background:#1e8449; color:#fff; border:none; font-family:var(--font-pixel); cursor:pointer;">PERFORM REBIRTH</button>
+    </div>`;
+}
+
+function triggerPrestige(gain) {
+  if (gain < 1) return;
+  if (!confirm("Reset all assets for special permanent Crystals?")) return;
+  state.crystals += gain;
+  state.energy = 0;
+  state.totalEnergyEarned = 0;
+  state.stage = 0;
+  state.totalClicks = 0;
+  state.tools = [];
+  BOT_DEFS.forEach(b => state.bots[b.id] = 0);
+
+  applyStageTheme(STAGES[0]);
+  renderBots(); renderTools(); updateUI(); switchTab('bots');
+  showToast("💎 Reborn with core multiplier power!");
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', ['bots','upgrades','prestige'][i] === name));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'prestige') renderPrestige();
+}
+
+function showToast(msg) {
+  let t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function resetGame() {
+  if (confirm("Reset current saved data fully?")) {
+    localStorage.removeItem('mc_clicker_v5_pro');
+    location.reload();
+  }
+}
+
+// RUNTIME ENGINE INITIALIZATION
+let raw = localStorage.getItem('mc_clicker_v5_pro');
+if (raw) { try { Object.assign(state, JSON.parse(raw)); } catch(e){} }
+applyStageTheme(STAGES[state.stage]);
+renderBots();
+renderTools();
+updateUI();
+checkStageProgress();
+</script>
+</body>
+</html>
