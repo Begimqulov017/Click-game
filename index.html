@@ -520,35 +520,57 @@ function cgLoadingStart() { if (sdkReady) try { CG.game.loadingStart(); } catch(
 function cgLoadingStop()  { if (sdkReady) try { CG.game.loadingStop();  } catch(e){} }
 function cgHappyTime()    { if (sdkReady) try { CG.game.happytime();    } catch(e){} }
 
-// Midgame ad (auto, every 5 min of gameplay)
-let lastMidgameAd = Date.now();
-function tryMidgameAd() {
-  const INTERVAL = 5 * 60 * 1000; // 5 min
-  if (!sdkReady || Date.now() - lastMidgameAd < INTERVAL) return;
-  lastMidgameAd = Date.now();
+// ── AD HELPER — always safe to call, works on any domain ──
+function safeRequestAd(type, onSuccess) {
+  const env = sdkReady ? (CG.environment || 'disabled') : 'disabled';
+  // CrazyGames da emas (netlify, localhost, boshqa domenlar) — overlay ko'rsatma
+  if (!sdkReady || (env !== 'crazygames' && env !== 'local')) {
+    if (type === 'rewarded') {
+      onSuccess && onSuccess();
+    }
+    return;
+  }
   showAdOverlay();
   cgGameplayStop();
-  CG.ad.requestAd('midgame', {
-    adStarted:  () => { pauseGameLoop(); },
-    adFinished: () => { hideAdOverlay(); resumeGameLoop(); cgGameplayStart(); },
-    adError:    () => { hideAdOverlay(); resumeGameLoop(); cgGameplayStart(); }
+  // Safety timeout: 15 soniya ichida callback kelmasa overlay yopiladi
+  const safety = setTimeout(() => {
+    hideAdOverlay(); resumeGameLoop(); cgGameplayStart();
+  }, 15000);
+  CG.ad.requestAd(type, {
+    adStarted:  () => { clearTimeout(safety); pauseGameLoop(); },
+    adFinished: () => {
+      clearTimeout(safety);
+      hideAdOverlay(); resumeGameLoop(); cgGameplayStart();
+      if (type === 'rewarded') onSuccess && onSuccess();
+    },
+    adError: (err) => {
+      clearTimeout(safety);
+      hideAdOverlay(); resumeGameLoop(); cgGameplayStart();
+      if (type === 'rewarded') {
+        const msg = err?.code === 'adCooldown' ? 'Ad cooldown, wait a moment.' :
+                    err?.code === 'adblock'    ? 'Disable adblock for ads.' :
+                    'Ad not available right now.';
+        showToast(msg);
+      }
+    }
   });
 }
 
-// Rewarded ad → +2min x2 boost
+// Midgame ad (auto, every 5 min)
+let lastMidgameAd = Date.now();
+function tryMidgameAd() {
+  const INTERVAL = 5 * 60 * 1000;
+  if (Date.now() - lastMidgameAd < INTERVAL) return;
+  lastMidgameAd = Date.now();
+  safeRequestAd('midgame', null);
+}
+
+// Rewarded ad button → +2min x2 boost
 document.getElementById('reward-btn').addEventListener('click', () => {
-  if (!sdkReady) { showToast('Ads not available right now.'); return; }
-  showAdOverlay();
-  cgGameplayStop();
-  CG.ad.requestAd('rewarded', {
-    adStarted:  () => { pauseGameLoop(); },
-    adFinished: () => {
-      hideAdOverlay(); resumeGameLoop(); cgGameplayStart();
-      adBoostEnd = Date.now() + 2 * 60 * 1000;
-      showToast('◆ 2-min x2 Boost activated!');
-      cgHappyTime();
-    },
-    adError: () => { hideAdOverlay(); resumeGameLoop(); cgGameplayStart(); showToast('Ad not available, try again later.'); }
+  safeRequestAd('rewarded', () => {
+    adBoostEnd = Date.now() + 2 * 60 * 1000;
+    showToast('◆ 2-min x2 Boost activated!');
+    cgHappyTime();
   });
 });
 
@@ -905,8 +927,9 @@ function checkReturnPlayer() {
 
   await initSDK();
   cgLoadingStop();
+
   checkReturnPlayer();
 })();
 </script>
 </body>
-</html>
+</html>s
